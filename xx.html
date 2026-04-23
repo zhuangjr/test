@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>中国年降雨量专题地图 (双击运行版)</title>
+
+    <!-- 1) 引入样式 -->
+    <link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/light/main.css" />
+    
+    <style>
+        html, body { padding: 0; margin: 0; height: 100%; width: 100%; display: flex; flex-direction: column; font-family: "Microsoft YaHei", sans-serif; }
+        
+        /* 布局：页眉 */
+        #header { height: 60px; background-color: #004c73; color: white; display: flex; align-items: center; padding: 0 20px; font-size: 20px; font-weight: bold; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        
+        #main-container { flex: 1; display: flex; flex-direction: row; overflow: hidden; }
+        
+        /* 布局：侧边栏（底图库区域） */
+        #sidebar { width: 300px; background: #ffffff; border-right: 1px solid #ddd; display: flex; flex-direction: column; }
+        .sidebar-title { padding: 15px; background: #f0f0f0; font-weight: bold; border-bottom: 1px solid #ddd; }
+        #basemapGalleryDiv { flex: 1; overflow-y: auto; padding: 10px; }
+        
+        /* 布局：地图区域 */
+        #viewDiv { flex: 1; height: 100%; }
+
+        /* 强制微件字体为中文 */
+        .esri-widget { font-family: "Microsoft YaHei", sans-serif !important; }
+    </style>
+
+    <!-- 2) 引入兼容性脚本库 (AMD 方式) -->
+    <script src="https://js.arcgis.com/4.31/"></script>
+
+    <script>
+        require([
+            "esri/intl",
+            "esri/Map",
+            "esri/views/MapView",
+            "esri/layers/FeatureLayer",
+            "esri/widgets/BasemapGallery",
+            "esri/widgets/Search",
+            "esri/widgets/LayerList",
+            "esri/widgets/Legend",
+            "esri/widgets/ScaleBar"
+        ], function(intl, Map, MapView, FeatureLayer, BasemapGallery, Search, LayerList, Legend, ScaleBar) {
+
+            // 3) 设置语言为简体中文
+            intl.setLocale("zh-cn");
+
+            // 4) 定义降雨量分级渲染器 (确保图例能显示)
+            const rainRenderer = {
+                type: "class-breaks",
+                field: "ANNUAL_RAIN",
+                classBreakInfos: [
+                    { minValue: 0, maxValue: 400, symbol: { type: "simple-fill", color: "#ffffcc", outline: {width:0.5, color:"white"} }, label: "干旱区 (<400mm)" },
+                    { minValue: 400, maxValue: 800, symbol: { type: "simple-fill", color: "#a1dab4", outline: {width:0.5, color:"white"} }, label: "半湿润区 (400-800mm)" },
+                    { minValue: 800, maxValue: 1600, symbol: { type: "simple-fill", color: "#41b6c4", outline: {width:0.5, color:"white"} }, label: "湿润区 (800-1600mm)" },
+                    { minValue: 1600, maxValue: 5000, symbol: { type: "simple-fill", color: "#225ea8", outline: {width:0.5, color:"white"} }, label: "极湿润区 (>1600mm)" }
+                ]
+            };
+
+            // 5) 加载专题图层 (中国年降雨量)
+            const rainLayer = new FeatureLayer({
+                url: "https://www.geosceneonline.cn/server/rest/services/Hosted/%E4%B8%AD%E5%9B%BD%E5%B9%B4%E9%99%8D%E9%9B%A8%E9%87%8F/FeatureServer/0",
+                title: "中国年降雨量专题分布",
+                renderer: rainRenderer,
+                opacity: 0.8,
+                popupTemplate: {
+                    title: "{PROVINCE}",
+                    content: "年平均降雨量: {ANNUAL_RAIN} mm"
+                }
+            });
+
+            const map = new Map({
+                basemap: "gray-vector",
+                layers: [rainLayer]
+            });
+
+            const view = new MapView({
+                container: "viewDiv",
+                map: map,
+                center: [105, 35],
+                zoom: 4
+            });
+
+            // 6) 添加微件 (完全对应实验要求)
+            view.ui.add(new Search({ view: view }), "top-right");
+            view.ui.add(new LayerList({ view: view }), "top-right");
+            view.ui.add(new ScaleBar({ view: view, unit: "metric" }), "bottom-left");
+            view.ui.add(new Legend({ view: view }), "bottom-right");
+
+            // 7) 初始化左侧底图库
+            new BasemapGallery({
+                view: view,
+                container: "basemapGalleryDiv"
+            });
+
+            view.when(function() {
+                console.log("WebGIS 应用已就绪，直接双击文件即可运行。");
+            });
+        });
+    </script>
+</head>
+<body>
+    <!-- 布局要求 1：页眉 -->
+    <div id="header">实验六：中国年降雨量 WebGIS 专题应用</div>
+
+    <div id="main-container">
+        <!-- 布局要求 2：底图库区域 -->
+        <div id="sidebar">
+            <div class="sidebar-title">底图控制台 (中文)</div>
+            <div id="basemapGalleryDiv"></div>
+        </div>
+
+        <!-- 布局要求 3：地图区域 -->
+        <div id="viewDiv"></div>
+    </div>
+</body>
+</html>
