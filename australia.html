@@ -1,0 +1,182 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>实验六：基于 ArcGIS Maps SDK for JavaScript 构建澳洲人口密度专题地图</title>
+
+    <!-- 1. 加载 ArcGIS API for JavaScript 4.x 样式 -->
+    <link rel="stylesheet" href="https://js.arcgis.com/4.31/esri/themes/light/main.css" />
+
+    <style>
+      html, body {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        font-family: "Microsoft YaHei", "SimSun", sans-serif;
+      }
+
+      #header {
+        height: 60px;
+        background-color: #000031;
+        color: white;
+        display: flex;
+        align-items: center;
+        padding: 0 20px;
+        font-size: 20px;
+        font-weight: bold;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        z-index: 10;
+      }
+
+      #main-container {
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        overflow: hidden;
+      }
+
+      #sidebar {
+        width: 280px;
+        background-color: #f4f4f4;
+        border-right: 1px solid #ccc;
+        display: flex;
+        flex-direction: column;
+        z-index: 5;
+      }
+
+      .sidebar-title {
+        padding: 15px;
+        background-color: #e6e6e6;
+        font-weight: bold;
+        border-bottom: 1px solid #ccc;
+        color: #333;
+      }
+
+      #basemapGalleryDiv {
+        flex: 1;
+        overflow-y: auto;
+        padding: 5px;
+      }
+
+      #viewDiv {
+        flex: 1;
+        height: 100%;
+        position: relative;
+      }
+    </style>
+
+    <!-- 2. 加载 ArcGIS API for JavaScript 4.x AMD 脚本 -->
+    <script src="https://js.arcgis.com/4.31/"></script>
+
+    <script>
+      require([
+        "esri/intl",
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/ImageryLayer",
+        "esri/layers/FeatureLayer",
+        "esri/widgets/BasemapGallery",
+        "esri/widgets/ScaleBar",
+        "esri/widgets/Legend",
+        "esri/widgets/Search",
+        "esri/widgets/LayerList",
+        "esri/widgets/Expand"
+      ], function(intl, Map, MapView, ImageryLayer, FeatureLayer, BasemapGallery, ScaleBar, Legend, Search, LayerList, Expand) {
+        
+        intl.setLocale("zh-cn");
+
+        const map = new Map({
+          basemap: "gray-vector" 
+        });
+
+        const view = new MapView({
+          container: "viewDiv",
+          map: map,
+          center: [133, -25], 
+          zoom: 4
+        });
+
+        /**
+         * 4. 加载专题图层 (澳洲人口密度)
+         * 由于 FeatureLayer 接口限制，改用澳洲官方 (Digital Atlas) 的 ImageryLayer
+         * 该服务专门用于展示 2024 年澳洲人口格网数据
+         */
+        const populationLayer = new ImageryLayer({
+          url: "https://tiledimageservices1.arcgis.com/v8Kimc579yljmjSP/arcgis/rest/services/Aus_Population_Grid_2024/ImageServer",
+          title: "澳洲人口密度 (2024 格网)",
+          opacity: 0.8
+        });
+
+        /**
+         * 5. 添加行政区划图层 (作为辅助)
+         * 使用稳定的全球行政区划服务，并过滤出澳洲
+         */
+        const boundaryLayer = new FeatureLayer({
+          url: "https://services.arcgis.com/P3ePLMYs2RVChkJx/arcgis/rest/services/World_Administrative_Divisions/FeatureServer/0",
+          definitionExpression: "COUNTRY = 'Australia'",
+          title: "澳洲行政边界",
+          popupTemplate: {
+            title: "{NAME}",
+            content: "所属国家: {COUNTRY}"
+          },
+          renderer: {
+            type: "simple",
+            symbol: {
+              type: "simple-fill",
+              color: [0, 0, 0, 0],
+              outline: { color: [100, 100, 100, 0.5], width: 1 }
+            }
+          }
+        });
+
+        map.addMany([populationLayer, boundaryLayer]);
+
+        // 6. 添加微件
+        const searchWidget = new Search({ view: view });
+        view.ui.add(searchWidget, "top-right");
+
+        const layerList = new LayerList({ view: view });
+        const llExpand = new Expand({
+          view: view,
+          content: layerList,
+          expanded: false
+        });
+        view.ui.add(llExpand, "top-right");
+
+        const legend = new Legend({
+          view: view,
+          layerInfos: [{
+            layer: populationLayer,
+            title: "人口密度 (人/km²)"
+          }]
+        });
+        view.ui.add(legend, "bottom-right");
+
+        const scaleBar = new ScaleBar({
+          view: view,
+          unit: "metric"
+        });
+        view.ui.add(scaleBar, "bottom-left");
+
+        const basemapGallery = new BasemapGallery({
+          view: view,
+          container: "basemapGalleryDiv"
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="header">实验六：构建 WebGIS 应用 (澳洲人口密度专题)</div>
+    <div id="main-container">
+      <div id="sidebar">
+        <div class="sidebar-title">底图库控制台</div>
+        <div id="basemapGalleryDiv"></div>
+      </div>
+      <div id="viewDiv"></div>
+    </div>
+  </body>
+</html>
